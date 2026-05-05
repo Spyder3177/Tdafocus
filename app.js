@@ -1,3 +1,4 @@
+const APP_VERSION = 'v2.3';
 const STORE = 'tdafocus_v2_tasks';
 const SETTINGS = 'tdafocus_v2_settings';
 const PROJECTS = [
@@ -62,6 +63,7 @@ function render(){
     screen.className='screen'+(s===currentScreen?' active'+(lastSwipeDirection?' swipe-'+lastSwipeDirection:''):'');
     document.getElementById('nav-'+s).className='nav-btn'+(s===currentScreen?' active':'');
   });
+  updateNavIndicator();
   lastSwipeDirection = null;
   renderToday(); renderTasks(); renderFocus(); renderStats();
 }
@@ -117,6 +119,22 @@ const MODES={work:25*60, short:5*60, long:15*60};
 function toggleTimer(){ timer.running=!timer.running; if(timer.running){ timer.interval=setInterval(()=>{ timer.secs--; if(timer.secs<=0){ clearInterval(timer.interval); timer.running=false; timer.sessions++; localStorage.setItem('tdafocus_v2_sessions', timer.sessions); timer.secs = timer.sessions%4===0 ? MODES.long : MODES.short; } renderFocus(); },1000); } else clearInterval(timer.interval); renderFocus(); }
 function resetTimer(){ clearInterval(timer.interval); timer.running=false; timer.secs=MODES.work; renderFocus(); }
 
+
+function updateNavIndicator(idx = SCREEN_ORDER.indexOf(currentScreen), immediate=false){
+  const indicator = document.getElementById('nav-indicator');
+  const inner = document.querySelector('.nav-inner');
+  if(!indicator || !inner) return;
+  const gap = 5;
+  const itemW = (inner.clientWidth - gap * 3) / 4;
+  indicator.style.width = itemW + 'px';
+  indicator.style.transition = immediate ? 'none' : 'transform .24s cubic-bezier(.2,.8,.2,1)';
+  indicator.style.transform = `translateX(${idx * (itemW + gap)}px)`;
+}
+function setScreenFromNavIndex(idx){
+  idx = Math.max(0, Math.min(SCREEN_ORDER.length - 1, idx));
+  setScreen(SCREEN_ORDER[idx]);
+}
+
 function moveScreen(delta){
   const i = SCREEN_ORDER.indexOf(currentScreen);
   const ni = Math.max(0, Math.min(SCREEN_ORDER.length - 1, i + delta));
@@ -154,21 +172,38 @@ function initSwipeNavigation(){
   document.addEventListener('touchstart', onStart, {passive:true});
   document.addEventListener('touchend', onEnd, {passive:true});
 
-  // Drag direct sur la barre du bas : le doigt qui finit sur une catégorie l'active.
+  // Barre du bas type Photos : le curseur suit le doigt, puis valide la catégorie au lâcher.
   const nav = document.querySelector('.bottom-nav');
   const inner = document.querySelector('.nav-inner');
+  let draggingNav = false;
+  let navIdx = SCREEN_ORDER.indexOf(currentScreen);
+  const indexFromTouch = e => {
+    const t = e.touches?.[0] || e.changedTouches?.[0]; if(!t || !inner) return null;
+    const r = inner.getBoundingClientRect();
+    if(t.clientY < r.top - 26 || t.clientY > r.bottom + 26) return null;
+    return Math.max(0, Math.min(3, Math.floor((t.clientX - r.left) / (r.width / 4))));
+  };
   if(nav && inner){
-    const activateFromTouch = e => {
-      const t = e.changedTouches?.[0]; if(!t) return;
-      const r = inner.getBoundingClientRect();
-      if(t.clientX < r.left || t.clientX > r.right || t.clientY < r.top - 18 || t.clientY > r.bottom + 18) return;
-      const idx = Math.max(0, Math.min(3, Math.floor((t.clientX - r.left) / (r.width / 4))));
-      setScreen(SCREEN_ORDER[idx]);
-    };
-    nav.addEventListener('touchend', activateFromTouch, {passive:true});
+    nav.addEventListener('touchstart', e => {
+      const idx = indexFromTouch(e); if(idx === null) return;
+      draggingNav = true; navIdx = idx; updateNavIndicator(idx, true);
+    }, {passive:true});
+    nav.addEventListener('touchmove', e => {
+      if(!draggingNav) return;
+      const idx = indexFromTouch(e); if(idx === null) return;
+      if(idx !== navIdx){ navIdx = idx; updateNavIndicator(idx, true); }
+    }, {passive:true});
+    nav.addEventListener('touchend', e => {
+      if(!draggingNav) return;
+      draggingNav = false;
+      const idx = indexFromTouch(e);
+      if(idx !== null) setScreenFromNavIndex(idx);
+      else updateNavIndicator();
+    }, {passive:true});
   }
 }
 initSwipeNavigation();
+window.addEventListener('resize', () => updateNavIndicator(), {passive:true});
 
 window.addEventListener('online',()=>document.getElementById('offline-bar').style.display='none');
 window.addEventListener('offline',()=>document.getElementById('offline-bar').style.display='block');

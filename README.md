@@ -17,7 +17,7 @@ Build command : vide
 Publish directory : `.`
 
 
-## V2.2
+## V2.3
 - Barre du bas descendue et plus compacte sur iPhone.
 - Swipe global sur toute la surface de l’app.
 - Swipe/drag de la barre du bas plus tolérant.
