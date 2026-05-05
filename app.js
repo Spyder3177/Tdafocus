@@ -123,40 +123,49 @@ function moveScreen(delta){
   if(ni !== i) setScreen(SCREEN_ORDER[ni], delta > 0 ? 'left' : 'right');
 }
 function initSwipeNavigation(){
-  const areas = [document.querySelector('.app'), document.querySelector('.bottom-nav')].filter(Boolean);
-  let startX=0, startY=0, startTime=0, activeArea=null;
+  let startX=0, startY=0, startTime=0, startTarget=null;
+
+  const isBlocked = target => target.closest('input, textarea, select, .modal, .overlay, .pill-row');
+
   const onStart = e => {
-    if(e.target.closest('input, textarea, select, button, .modal, .overlay, .pill-row')) return;
+    if(isBlocked(e.target)) return;
     const t = e.touches ? e.touches[0] : e;
-    startX = t.clientX; startY = t.clientY; startTime = Date.now(); activeArea = e.currentTarget;
+    startX = t.clientX;
+    startY = t.clientY;
+    startTime = Date.now();
+    startTarget = e.target;
   };
+
   const onEnd = e => {
-    if(!activeArea) return;
+    if(!startTarget) return;
+    if(isBlocked(startTarget)) { startTarget=null; return; }
     const t = e.changedTouches ? e.changedTouches[0] : e;
     const dx = t.clientX - startX;
     const dy = t.clientY - startY;
-    const fast = Date.now() - startTime < 420;
-    if(Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.25 && fast){
+    const fast = Date.now() - startTime < 650;
+
+    // Swipe global : fonctionne sur le header, les cards, le vide, et même la nav.
+    if(Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.12 && fast){
       moveScreen(dx < 0 ? 1 : -1);
     }
-    activeArea = null;
+    startTarget = null;
   };
-  areas.forEach(area=>{
-    area.addEventListener('touchstart', onStart, {passive:true});
-    area.addEventListener('touchend', onEnd, {passive:true});
-  });
+
+  document.addEventListener('touchstart', onStart, {passive:true});
+  document.addEventListener('touchend', onEnd, {passive:true});
 
   // Drag direct sur la barre du bas : le doigt qui finit sur une catégorie l'active.
   const nav = document.querySelector('.bottom-nav');
   const inner = document.querySelector('.nav-inner');
   if(nav && inner){
-    nav.addEventListener('touchend', e=>{
+    const activateFromTouch = e => {
       const t = e.changedTouches?.[0]; if(!t) return;
       const r = inner.getBoundingClientRect();
-      if(t.clientX < r.left || t.clientX > r.right || t.clientY < r.top || t.clientY > r.bottom) return;
+      if(t.clientX < r.left || t.clientX > r.right || t.clientY < r.top - 18 || t.clientY > r.bottom + 18) return;
       const idx = Math.max(0, Math.min(3, Math.floor((t.clientX - r.left) / (r.width / 4))));
       setScreen(SCREEN_ORDER[idx]);
-    }, {passive:true});
+    };
+    nav.addEventListener('touchend', activateFromTouch, {passive:true});
   }
 }
 initSwipeNavigation();
