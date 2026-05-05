@@ -1,6 +1,7 @@
-const APP_VERSION = 'v2.4';
+const APP_VERSION = 'v3.0';
 const STORE = 'tdafocus_v2_tasks';
 const SETTINGS = 'tdafocus_v2_settings';
+const LAST = 'tdafocus_v3_last';
 const PROJECTS = [
   { id:'kdp', label:'KDP / Livres', color:'#f5a623' },
   { id:'revente', label:'Revente', color:'#60c8f5' },
@@ -31,11 +32,15 @@ let filter = settings.filter || 'all';
 let editId = null;
 let formSteps = [];
 let focusTaskId = localStorage.getItem('tdafocus_v2_focus') || null;
+let lastSession = JSON.parse(localStorage.getItem(LAST) || 'null');
 let timer = { mode:'work', secs:25*60, running:false, interval:null, sessions:Number(localStorage.getItem('tdafocus_v2_sessions') || 0) };
 const SCREEN_ORDER = ['today','tasks','focus','stats'];
 let lastSwipeDirection = null;
 const save = () => localStorage.setItem(STORE, JSON.stringify(tasks));
 const saveSettings = () => localStorage.setItem(SETTINGS, JSON.stringify({screen:currentScreen, filter}));
+const saveLast = data => { lastSession = data; localStorage.setItem(LAST, JSON.stringify(data)); };
+const haptic = () => { try { navigator.vibrate?.(12); } catch(e){} };
+function pulse(){ document.body.classList.add('reward-pulse'); setTimeout(()=>document.body.classList.remove('reward-pulse'),260); }
 const project = id => PROJECTS.find(p=>p.id===id) || PROJECTS[PROJECTS.length-1];
 const taskProgress = t => { const total=t.steps?.length || 0; const done=(t.steps||[]).filter(s=>s.done).length; return {total,done,pct:total?Math.round(done/total*100):0}; };
 function dueText(t){ if(!t.dueDate) return 'Sans échéance'; if(t.dueDate < today() && !t.done) return 'En retard'; if(t.dueDate === today()) return 'Aujourd’hui'; return t.dueDate; }
@@ -100,10 +105,52 @@ function render(){
   lastSwipeDirection = null;
   renderToday(); renderTasks(); renderFocus(); renderStats();
 }
+
+function getResumeTask(){
+  if(focusTaskId){ const t=tasks.find(x=>x.id===focusTaskId && !x.done); if(t) return t; }
+  if(lastSession?.taskId){ const t=tasks.find(x=>x.id===lastSession.taskId && !x.done); if(t) return t; }
+  const started = getOpen().find(t => (t.steps||[]).some(s=>s.done) && (t.steps||[]).some(s=>!s.done));
+  return started || null;
+}
+function renderResumeBlock(){
+  const t=getResumeTask();
+  if(!t) return '';
+  const pr=taskProgress(t);
+  const next=(t.steps||[]).find(s=>!s.done);
+  return `<div class="card resume-card"><div class="hero-kicker">Reprendre</div><div class="task-title" style="font-size:18px;margin-top:4px">${esc(t.title)}</div><div class="task-meta" style="margin-top:6px">Étape ${Math.min(pr.done+1, Math.max(pr.total,1))}/${Math.max(pr.total,1)} · ${next?esc(next.text):'terminer la tâche'}</div><div class="progress" style="margin-top:12px"><span style="width:${pr.pct}%"></span></div><div class="row" style="margin-top:14px"><button class="btn btn-md btn-accent" onclick="startFocus('${t.id}')">Reprendre</button><button class="btn btn-md btn-default" onclick="openBlockedModal()">Je suis bloqué</button></div></div>`;
+}
+function smartBlockedSuggestion(){
+  const current=getResumeTask();
+  if(current){
+    const next=(current.steps||[]).find(s=>!s.done);
+    if(next) return {type:'step', task:current, step:next};
+    return {type:'finish', task:current};
+  }
+  const urgent=getOpen().sort((a,b)=>{
+    const score=t=>(t.dueDate&&t.dueDate<today()?100:0)+(t.dueDate===today()?60:0)+(t.priority==='haute'?30:t.priority==='moyenne'?15:5);
+    return score(b)-score(a);
+  })[0];
+  if(urgent) return {type:'focus5', task:urgent};
+  return {type:'new'};
+}
+function openBlockedModal(){
+  const h=smartBlockedSuggestion();
+  let html='';
+  if(h.type==='step') html=`<div class="modal-title"><h2>Action simple</h2><button class="btn btn-sm btn-ghost" onclick="closeModal()">Fermer</button></div><div class="stack"><div class="hero-sub">Ne réfléchis pas à toute la tâche. Fais seulement cette micro-action.</div><div class="card focus-step"><div class="stat-label">À faire maintenant</div><div style="font-size:18px;font-weight:800;line-height:1.35;margin-top:8px">${esc(h.step.text)}</div></div><button class="btn btn-lg btn-accent" onclick="closeModal(); startFocus('${h.task.id}'); startMiniFocus()">Lancer 5 minutes</button><button class="btn btn-lg btn-default" onclick="completeNextStep('${h.task.id}'); closeModal();">C’est fait</button></div>`;
+  if(h.type==='finish') html=`<div class="modal-title"><h2>Presque fini</h2><button class="btn btn-sm btn-ghost" onclick="closeModal()">Fermer</button></div><div class="stack"><div class="hero-sub">Toutes les étapes sont cochées. Il reste juste à valider.</div><button class="btn btn-lg btn-accent" onclick="toggleTask('${h.task.id}'); closeModal();">Terminer la tâche</button></div>`;
+  if(h.type==='focus5') html=`<div class="modal-title"><h2>Mini focus</h2><button class="btn btn-sm btn-ghost" onclick="closeModal()">Fermer</button></div><div class="stack"><div class="hero-sub">Juste 5 minutes. Pas besoin d’être motivé.</div><div class="card"><div class="task-title">${esc(h.task.title)}</div><div class="task-meta">${esc(project(h.task.project).label)}</div></div><button class="btn btn-lg btn-accent" onclick="closeModal(); startFocus('${h.task.id}'); startMiniFocus()">Démarrer 5 minutes</button></div>`;
+  if(h.type==='new') html=`<div class="modal-title"><h2>Démarrage simple</h2><button class="btn btn-sm btn-ghost" onclick="closeModal()">Fermer</button></div><div class="stack"><div class="hero-sub">Tu n’as aucune tâche ouverte. Crée-en une sans chercher la perfection.</div><button class="btn btn-lg btn-accent" onclick="closeModal(); openTemplates();">Utiliser un template</button><button class="btn btn-lg btn-default" onclick="closeModal(); openForm();">Créer une tâche vide</button></div>`;
+  document.getElementById('modal').innerHTML=html;
+  document.getElementById('overlay').classList.remove('hidden');
+}
+function startMiniFocus(){ timer.running=false; clearInterval(timer.interval); timer.secs=5*60; haptic(); renderFocus(); toggleTimer(); }
+
 function renderToday(){
   const list=todayTasks(); const main=list[0]; const second=list.slice(1);
+  const resume = renderResumeBlock();
   document.getElementById('screen-today').innerHTML = `
-    <div class="hero"><div class="hero-kicker">Focus du jour</div><div class="hero-title">${main ? esc(main.title) : 'Planifie une tâche importante'}</div><div class="hero-sub">${main ? 'Objectif : une seule vraie priorité, puis deux secondaires maximum.' : 'Ajoute une tâche ou utilise un template pour lancer ta journée.'}</div><div style="margin-top:16px" class="row hero-actions"><button class="btn btn-md btn-accent" onclick="${main?`startFocus('${main.id}')`:'openTemplates()'}">${main?'Démarrer focus':'Utiliser un template'}</button><button class="btn btn-md btn-default" onclick="openForm()">Nouvelle tâche</button><button class="btn btn-md btn-default" onclick="planDay()">Planifier ma journée</button></div></div>
+    ${resume}
+    <div class="hero"><div class="hero-kicker">Aujourd’hui</div><div class="hero-title">${main ? esc(main.title) : 'Commence simple'}</div><div class="hero-sub">${main ? 'Une priorité principale. Pas plus. Avance étape par étape.' : 'Choisis un template ou crée une tâche rapide.'}</div><div style="margin-top:16px" class="row hero-actions"><button class="btn btn-md btn-accent" onclick="${main?`startFocus('${main.id}')`:'openTemplates()'}">${main?'Démarrer focus':'Utiliser un template'}</button><button class="btn btn-md btn-default" onclick="openBlockedModal()">Je suis bloqué</button><button class="btn btn-md btn-default" onclick="planDay()">Planifier ma journée</button></div></div>
     <div class="grid"><div class="big-stat"><div class="stat-val">${tasks.filter(t=>t.done&&t.doneAt===today()).length}</div><div class="stat-label">terminées aujourd’hui</div></div><div class="big-stat"><div class="stat-val">${getOpen().length}</div><div class="stat-label">en cours</div></div></div>
     <div class="section-title">Top 3</div>
     <div class="stack">${list.length?list.map((t,i)=>renderTaskCard(t,{main:i===0})).join(''):`<div class="empty">Rien à faire pour aujourd’hui.<br><br><div class="row empty-actions"><button class="btn btn-md btn-accent" onclick="openTemplates()">Créer depuis un template</button><button class="btn btn-md btn-default" onclick="planDay()">Planifier</button></div></div>`}</div>
@@ -126,7 +173,7 @@ function renderSteps(t){ return `<div class="steps">${(t.steps||[]).map(s=>`<div
 function renderFocus(){
   const t=tasks.find(x=>x.id===focusTaskId && !x.done); const pr=t?taskProgress(t):null; const next=t?(t.steps||[]).find(s=>!s.done):null;
   document.getElementById('screen-focus').innerHTML = t ? `
-    <div class="card focus-panel"><div class="hero-kicker">Mode Focus</div><div class="focus-task">${esc(t.title)}</div><div class="task-meta" style="margin-top:8px">${esc(project(t.project).label)} · progression ${pr.done}/${pr.total}</div><div class="timer" id="timer-display">${fmt(timer.secs)}</div><div class="row" style="justify-content:center"><button class="btn btn-md btn-accent" onclick="toggleTimer()">${timer.running?'Pause':'Démarrer'}</button><button class="btn btn-md btn-default" onclick="resetTimer()">Reset</button></div><div class="focus-step"><div class="stat-label">Étape actuelle</div><div style="font-size:16px;font-weight:760;margin-top:8px;line-height:1.35">${next?esc(next.text):'Toutes les étapes sont cochées.'}</div></div><div class="grid"><button class="btn btn-lg btn-default" onclick="completeNextStep('${t.id}')">Étape suivante</button><button class="btn btn-lg btn-accent" onclick="toggleTask('${t.id}')">Terminer tâche</button></div><div style="margin-top:14px"><button class="btn btn-sm btn-ghost" onclick="clearFocus()">Quitter ce focus</button></div></div>
+    <div class="card focus-panel"><div class="hero-kicker">Mode Focus</div><div class="focus-task">${esc(t.title)}</div><div class="task-meta" style="margin-top:8px">${esc(project(t.project).label)} · progression ${pr.done}/${pr.total}</div><div class="timer" id="timer-display">${fmt(timer.secs)}</div><div class="row" style="justify-content:center"><button class="btn btn-md btn-accent" onclick="toggleTimer()">${timer.running?'Pause':'Démarrer'}</button><button class="btn btn-md btn-default" onclick="resetTimer()">Reset</button></div><div class="focus-step"><div class="stat-label">Étape actuelle</div><div style="font-size:16px;font-weight:760;margin-top:8px;line-height:1.35">${next?esc(next.text):'Toutes les étapes sont cochées.'}</div></div><div class="grid"><button class="btn btn-lg btn-default" onclick="completeNextStep('${t.id}')">Étape suivante</button><button class="btn btn-lg btn-accent" onclick="toggleTask('${t.id}')">Terminer tâche</button></div><div style="margin-top:14px"><button class="btn btn-sm btn-ghost" onclick="openBlockedModal()">Je suis bloqué</button><button class="btn btn-sm btn-ghost" onclick="clearFocus()">Quitter ce focus</button></div></div>
   ` : `<div class="hero"><div class="hero-kicker">Mode Focus</div><div class="hero-title">Aucune tâche sélectionnée</div><div class="hero-sub">Choisis une tâche pour lancer un timer et avancer étape par étape.</div><div style="margin-top:16px"><button class="btn btn-md btn-accent" onclick="setScreen('today')">Voir aujourd’hui</button></div></div>`;
 }
 function renderStats(){
@@ -134,11 +181,11 @@ function renderStats(){
   const doneToday=tasks.filter(t=>t.done&&t.doneAt===today()).length, doneWeek=tasks.filter(t=>t.done&&t.doneAt>=ws).length, steps=tasks.reduce((a,t)=>a+(t.steps||[]).filter(s=>s.done).length,0);
   document.getElementById('screen-stats').innerHTML = `<div class="section-title">Statistiques</div><div class="grid"><div class="big-stat"><div class="stat-val">${doneToday}</div><div class="stat-label">aujourd’hui</div></div><div class="big-stat"><div class="stat-val">${doneWeek}</div><div class="stat-label">7 derniers jours</div></div><div class="big-stat"><div class="stat-val">${steps}</div><div class="stat-label">étapes cochées</div></div><div class="big-stat"><div class="stat-val">${timer.sessions}</div><div class="stat-label">sessions focus</div></div></div><div class="section-title">Répartition</div><div class="stack">${PROJECTS.map(p=>`<div class="card spread"><div><div class="task-title">${p.label}</div><div class="task-meta">${tasks.filter(t=>t.project===p.id&&!t.done).length} en cours · ${tasks.filter(t=>t.project===p.id&&t.done).length} terminées</div></div><span class="tag accent">${tasks.filter(t=>t.project===p.id).length}</span></div>`).join('')}</div>`;
 }
-function toggleTask(id){ tasks=tasks.map(t=>t.id===id?{...t,done:!t.done,doneAt:!t.done?today():undefined}:t); if(focusTaskId===id && tasks.find(t=>t.id===id)?.done) clearFocus(false); save(); render(); }
-function toggleStep(tid,sid){ tasks=tasks.map(t=>t.id===tid?{...t,steps:t.steps.map(s=>s.id===sid?{...s,done:!s.done}:s)}:t); save(); render(); }
+function toggleTask(id){ tasks=tasks.map(t=>t.id===id?{...t,done:!t.done,doneAt:!t.done?today():undefined}:t); if(focusTaskId===id && tasks.find(t=>t.id===id)?.done) clearFocus(false); haptic(); pulse(); save(); render(); }
+function toggleStep(tid,sid){ tasks=tasks.map(t=>t.id===tid?{...t,steps:t.steps.map(s=>s.id===sid?{...s,done:!s.done}:s)}:t); const t=tasks.find(x=>x.id===tid); const next=(t?.steps||[]).find(s=>!s.done); saveLast({taskId:tid, stepId:next?.id||null, updatedAt:Date.now()}); haptic(); pulse(); save(); render(); }
 function completeNextStep(id){ const t=tasks.find(x=>x.id===id); const next=t?.steps.find(s=>!s.done); if(next) toggleStep(id,next.id); }
 function toggleExpand(id){ tasks=tasks.map(t=>t.id===id?{...t,expanded:!t.expanded}:t); save(); render(); }
-function startFocus(id){ focusTaskId=id; localStorage.setItem('tdafocus_v2_focus', id); setScreen('focus'); }
+function startFocus(id){ focusTaskId=id; localStorage.setItem('tdafocus_v2_focus', id); const t=tasks.find(x=>x.id===id); const next=(t?.steps||[]).find(s=>!s.done); saveLast({taskId:id, stepId:next?.id||null, updatedAt:Date.now()}); haptic(); setScreen('focus'); }
 function clearFocus(doRender=true){ focusTaskId=null; localStorage.removeItem('tdafocus_v2_focus'); if(doRender) render(); }
 function openForm(id=null){ editId=id; const t=id?tasks.find(x=>x.id===id):null; formSteps=t?[...(t.steps||[])].map(s=>({...s})):[]; document.getElementById('modal').innerHTML = `<div class="modal-title"><h2>${t?'Modifier':'Nouvelle tâche'}</h2><button class="btn btn-sm btn-ghost" onclick="closeModal()">Fermer</button></div><div class="stack"><input id="f-title" placeholder="Titre de la tâche" value="${t?esc(t.title):''}"><div class="form-row"><select id="f-project">${PROJECTS.map(p=>`<option value="${p.id}" ${(t?.project||'kdp')===p.id?'selected':''}>${p.label}</option>`).join('')}</select><select id="f-priority">${PRIORITIES.map(p=>`<option value="${p.id}" ${(t?.priority||'moyenne')===p.id?'selected':''}>Priorité ${p.label}</option>`).join('')}</select></div><div class="form-row"><input id="f-due" type="date" value="${t?.dueDate||''}"><select id="f-recurring"><option value="none">Pas de récurrence</option><option value="daily" ${t?.recurring==='daily'?'selected':''}>Quotidienne</option><option value="weekly" ${t?.recurring==='weekly'?'selected':''}>Hebdomadaire</option><option value="monthly" ${t?.recurring==='monthly'?'selected':''}>Mensuelle</option></select></div><textarea id="f-note" rows="2" placeholder="Note / contexte">${t?esc(t.note):''}</textarea><div><div class="spread" style="margin-bottom:8px"><div class="stat-label">Micro-étapes</div><button class="btn btn-sm btn-default" onclick="addStep()">Ajouter</button></div><div id="form-steps" class="stack"></div></div><div class="form-actions"><button class="btn btn-lg btn-default" onclick="closeModal()">Annuler</button><button class="btn btn-lg btn-accent" onclick="saveTask()">Enregistrer</button></div></div>`; document.getElementById('overlay').classList.remove('hidden'); renderFormSteps(); }
 function renderFormSteps(){ const el=document.getElementById('form-steps'); if(!el) return; el.innerHTML=formSteps.map((s,i)=>`<div class="card" style="padding:10px"><div class="row"><span class="tag">${i+1}</span><input value="${esc(s.text)}" onchange="formSteps[${i}].text=this.value" placeholder="Étape"><button class="btn btn-sm btn-ghost" onclick="removeStep(${i})">×</button></div></div>`).join('') || '<div class="empty" style="padding:20px">Aucune étape.</div>'; }

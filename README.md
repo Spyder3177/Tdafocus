@@ -1,14 +1,15 @@
-# TDAFocus V2.1 Clean GitHub
+# TDAFocus V3 Clean GitHub
 
-Application PWA de gestion de tâches et focus.
+Application PWA de gestion de tâches pensée pour réduire la friction TDA/TDAH.
 
-## Nouveautés V2.1
+## Nouveautés V3
 
-- Correction du fond blanc lors du tirage / overscroll iPhone.
-- Swipe horizontal entre les écrans Aujourd’hui, Tâches, Focus et Stats.
-- Swipe/drag sur la barre du bas pour changer d’onglet.
-- Transitions d’écran plus propres.
-- Base toujours sans build, compatible GitHub + Netlify.
+- Bloc **Reprendre** pour reprendre la dernière tâche/focus.
+- Bouton **Je suis bloqué** intelligent selon le contexte.
+- Mini focus 5 minutes quand l’action paraît trop lourde.
+- Feedback discret : vibration légère compatible mobile + animation de progression.
+- Version affichée en **v3.0** près du logo.
+- Cache PWA mis à jour : `tdafocus-v3.0.0`.
 
 ## Déploiement Netlify
 
@@ -16,15 +17,6 @@ Build command : vide
 
 Publish directory : `.`
 
+## Installation iPhone
 
-## V2.3
-- Barre du bas descendue et plus compacte sur iPhone.
-- Swipe global sur toute la surface de l’app.
-- Swipe/drag de la barre du bas plus tolérant.
-
-
-## Nouveautés v2.4
-- Ajout du bouton **Planifier ma journée**.
-- Sélection automatique du Top 3 selon retard, échéance, priorité et progression.
-- Mise en focus automatique de la première tâche choisie.
-- Toast de confirmation discret.
+Ouvre l’URL Netlify dans Safari, puis Partager → Sur l’écran d’accueil.
