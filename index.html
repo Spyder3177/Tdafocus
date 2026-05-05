@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#f5a623"/>
+<meta name="description" content="Gestionnaire de tâches adapté TDA/TDAH avec IA"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="TDAFocus"/>
+<link rel="manifest" href="/manifest.json"/>
+<link rel="apple-touch-icon" href="/icons/icon-192.png"/>
+<link rel="icon" type="image/png" href="/icons/icon-192.png"/>
+<title>TDAFocus IA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0f0f13;--surf:#16161d;--border:#2a2a38;
+  --accent:#f5a623;--accent-soft:rgba(245,166,35,.12);--accent-glow:rgba(245,166,35,.25);
+  --ok:#4ecb71;--danger:#e05c5c;--text:#e8e8f0;--muted:#7a7a96;--faint:#3a3a55;
+  --purple:#9b8ff5;--ai:#60c8f5;--ai-soft:rgba(96,200,245,.12);
+  --safe-top:env(safe-area-inset-top);--safe-bottom:env(safe-area-inset-bottom);
+}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',system-ui,sans-serif;min-height:100dvh;padding-bottom:calc(80px + var(--safe-bottom));overscroll-behavior:none}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+input,select,textarea{color-scheme:dark;font-family:inherit;-webkit-appearance:none}
+input::placeholder,textarea::placeholder{color:var(--faint)}
+button{font-family:inherit;cursor:pointer}
+#offline-bar{display:none;background:rgba(224,92,92,.12);border-bottom:1px solid rgba(224,92,92,.28);padding:8px 20px;font-size:12px;color:var(--danger);text-align:center}
+.header{background:rgba(22,22,29,.88);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:1px solid rgba(255,255,255,.06);position:sticky;top:0;z-index:50;padding-top:var(--safe-top)}
+.header-inner{max-width:700px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.logo{font-size:19px;font-weight:800;letter-spacing:-.02em;display:flex;align-items:center;gap:8px}
+.ai-badge{font-size:10px;background:var(--ai-soft);color:var(--ai);border:1px solid rgba(96,200,245,.3);border-radius:20px;padding:2px 8px;font-weight:700;letter-spacing:.05em}
+.date{font-size:11px;color:var(--muted);margin-top:2px}
+.header-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn{border:none;border-radius:12px;font-weight:700;transition:transform .15s ease,background .15s ease,border-color .15s ease,opacity .15s ease;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;min-height:36px}
+.btn-sm{padding:8px 14px;font-size:12px}.btn-md{padding:12px 20px;font-size:14px}
+.btn-accent{background:var(--accent);color:#0f0f13;box-shadow:0 8px 20px rgba(245,166,35,.16)}.btn-default{background:rgba(255,255,255,.035);color:var(--muted);border:1px solid rgba(255,255,255,.07)}
+.btn-ghost{background:transparent;color:var(--muted)}.btn-ai{background:var(--ai-soft);color:var(--ai);border:1px solid rgba(96,200,245,.3)}
+.btn:disabled{opacity:.45;cursor:not-allowed}.btn:not(:disabled):active{transform:scale(.97)}
+.tag{border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.tabs{display:flex;gap:4px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:4px;margin-bottom:20px}
+.tab{flex:1;border:none;border-radius:11px;padding:10px 12px;font-weight:800;font-size:13px;transition:all .15s}
+.tab.active{background:var(--accent);color:#0f0f13}.tab:not(.active){background:transparent;color:var(--muted)}
+.pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.pill{border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;border:1px solid var(--border);color:var(--muted);background:transparent;transition:all .15s}
+.banner{background:var(--accent-soft);border:1px solid var(--accent-glow);border-radius:14px;padding:12px 16px;margin-bottom:18px;font-size:13px;color:var(--accent);font-weight:700}
+.card{background:linear-gradient(145deg,#16161d,#1a1a24);border:1px solid rgba(255,255,255,.055);border-radius:16px;padding:16px;margin-bottom:10px;transition:transform .2s ease,border-color .2s ease,background .2s ease;animation:fadeIn .22s ease;box-shadow:0 8px 24px rgba(0,0,0,.22)}.card:active{transform:scale(.992)}
+.card.done{opacity:.5}.card-top{display:flex;align-items:flex-start;gap:12px}
+.checkbox{width:24px;height:24px;border-radius:8px;flex-shrink:0;border:2px solid var(--border);background:transparent;display:flex;align-items:center;justify-content:center;transition:all .15s;padding:0}
+.checkbox.checked{border-color:var(--ok);background:var(--ok)}
+.progress-bar{height:4px;border-radius:4px;background:var(--border);overflow:hidden;margin-top:10px;margin-left:34px}
+.progress-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--ai),var(--accent));transition:width .4s}
+.steps-list{margin-top:12px;margin-left:34px;background:var(--bg);border-radius:8px;border:1px solid var(--border);overflow:hidden}
+.step-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border)}.step-row:last-child{border-bottom:none}
+.step-cb{width:18px;height:18px;border-radius:4px;flex-shrink:0;border:2px solid var(--border);background:transparent;display:flex;align-items:center;justify-content:center;transition:all .15s;padding:0}.step-cb.done{border-color:var(--ok);background:var(--ok)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px}
+.stat-box{background:linear-gradient(145deg,#16161d,#1a1a24);border:1px solid rgba(255,255,255,.055);border-radius:16px;padding:14px 10px;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.18)}
+.stat-val{font-size:26px;font-weight:800}.stat-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.66);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:100;display:flex;align-items:flex-end;justify-content:center;padding:0}
+@media(min-width:600px){.overlay{align-items:center;padding:20px}}
+.modal{background:linear-gradient(180deg,rgba(26,26,36,.98),rgba(18,18,25,.98));border:1px solid rgba(255,255,255,.07);border-radius:24px 24px 0 0;padding:24px 24px calc(24px + var(--safe-bottom));width:100%;max-width:540px;max-height:92dvh;overflow-y:auto;box-shadow:0 -12px 40px rgba(0,0,0,.45);animation:slideUp .24s ease}
+@media(min-width:600px){.modal{border-radius:24px;padding:28px}}
+.modal-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}.modal-title h2{font-size:18px}
+.modal-close{background:none;border:none;color:var(--muted);font-size:22px;line-height:1}
+.form-group{display:flex;flex-direction:column;gap:14px}.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field{background:#0a0a0e;border:1px solid rgba(255,255,255,.075);border-radius:12px;color:var(--text);font-size:14px;padding:12px 14px;outline:none;width:100%;resize:vertical}.field:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(245,166,35,.08)}
+.steps-box{background:var(--bg);border-radius:10px;border:1px solid var(--border);padding:14px}
+.step-input-row{display:flex;gap:8px;margin-top:8px}
+.step-item{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--surf);border-radius:8px;margin-bottom:5px;border:1px solid var(--border)}
+.step-num{color:var(--ai);font-size:11px;font-weight:800;min-width:22px;text-align:center;background:var(--ai-soft);border-radius:4px;padding:1px 5px}
+.ai-msg{background:var(--ai-soft);border:1px solid rgba(96,200,245,.2);border-radius:8px;padding:14px;font-size:13px;color:var(--ai);text-align:center;margin-bottom:10px}
+.err-msg{background:rgba(224,92,92,.1);border:1px solid rgba(224,92,92,.25);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--danger);margin-bottom:10px}
+.form-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:6px}
+.timer-modes{display:flex;justify-content:center;gap:6px;margin-bottom:24px;flex-wrap:wrap}
+.timer-ring{position:relative;display:inline-block;margin-bottom:24px}
+.timer-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.timer-time{font-size:32px;font-weight:800;font-variant-numeric:tabular-nums}
+.timer-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+.timer-actions{display:flex;justify-content:center;gap:10px;margin-bottom:16px}
+.timer-sessions{font-size:13px;color:var(--muted);margin-bottom:10px;text-align:center;min-height:20px}
+.timer-tip{padding:10px 16px;background:var(--ai-soft);border-radius:8px;font-size:12px;color:var(--ai)}
+.empty{text-align:center;padding:52px 0;color:var(--muted)}.empty-icon{font-size:42px;margin-bottom:12px}.empty-text{font-size:15px;font-weight:600;margin-bottom:14px}
+.section-label{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;margin-top:28px}
+.overdue-badge{background:rgba(224,92,92,.1);border:1px solid rgba(224,92,92,.3);border-radius:20px;padding:4px 10px;font-size:12px;color:var(--danger)}
+#install-banner{position:fixed;bottom:calc(16px + var(--safe-bottom));left:50%;transform:translateX(-50%);z-index:200;background:var(--surf);border:1px solid var(--accent);border-radius:14px;padding:12px 18px;display:flex;align-items:center;gap:12px;box-shadow:0 8px 32px rgba(0,0,0,.5);max-width:340px;width:90%}
+#install-banner.hidden{display:none!important}
+#app{max-width:700px;margin:0 auto;padding:24px 20px}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}@keyframes slideUp{from{opacity:0;transform:translateY(36px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:480px){.stats{grid-template-columns:repeat(2,1fr)}.form-row{grid-template-columns:1fr}.header-inner,#app{padding:12px 14px}}
+</style>
+</head>
+<body>
+<div id="offline-bar">Mode hors-ligne — données sauvegardées localement</div>
+<div class="header">
+  <div class="header-inner">
+    <div>
+      <div class="logo">
+        <span><span style="color:var(--accent)">TDA</span><span style="color:var(--text)">Focus</span></span>
+        <span class="ai-badge">IA</span>
+      </div>
+      <div class="date" id="date-label"></div>
+    </div>
+    <div class="header-actions">
+      <div class="overdue-badge" id="overdue-badge" style="display:none"></div>
+      <button class="btn btn-sm btn-ghost" onclick="toggleStats()">Stats</button>
+      <button class="btn btn-sm btn-default" onclick="openTimer()">Timer</button>
+      <button class="btn btn-sm btn-accent" onclick="openForm()">+ Tâche</button>
+    </div>
+  </div>
+</div>
+<div id="app">
+  <div id="stats-section" style="display:none"></div>
+  <div class="tabs">
+    <button class="tab active" id="tab-today" onclick="setView('today')">Focus du jour</button>
+    <button class="tab" id="tab-all" onclick="setView('all')">Toutes les tâches</button>
+  </div>
+  <div id="pills-section" style="display:none" class="pills"></div>
+  <div id="banner" class="banner" style="display:none"></div>
+  <div id="task-list"></div>
+  <div id="done-section"></div>
+</div>
+<div id="install-banner" class="hidden">
+  <div style="font-size:18px;font-weight:800;color:var(--accent)">PWA</div>
+  <div style="flex:1">
+    <div style="font-size:13px;font-weight:700;color:var(--text)">Installer TDAFocus</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px">Accès depuis l'écran d'accueil</div>
+  </div>
+  <button class="btn btn-sm btn-accent" id="install-btn">Installer</button>
+  <button class="btn btn-sm btn-ghost" onclick="document.getElementById('install-banner').classList.add('hidden')">×</button>
+</div>
+<div class="overlay" id="overlay" style="display:none" onclick="if(event.target===this)closeAll()">
+  <div class="modal" id="modal-content"></div>
+</div>
+<script src="/app.js"></script>
+</body>
+</html>
