@@ -1,11 +1,11 @@
 {
-  "name": "TDAFocus",
+  "name": "TDAFocus V2",
   "short_name": "TDAFocus",
-  "description": "Gestionnaire de tâches adapté TDA/TDAH avec IA",
+  "description": "Gestionnaire de tâches clean avec focus, timer et templates.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f0f13",
-  "theme_color": "#f5a623",
+  "theme_color": "#0f0f13",
   "orientation": "portrait-primary",
   "lang": "fr",
   "icons": [

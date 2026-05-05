@@ -1,62 +1,32 @@
-# TDAFocus
+# TDAFocus V2
 
-Application PWA simple pour gérer des tâches, micro-étapes et sessions focus.
+Application PWA simple en HTML/CSS/JS pour gérer des tâches avec un mode focus, un timer et des templates rapides.
 
-## Version
+## Nouveautés V2
 
-Clean GitHub v1
-
-## Fonctionnalités
-
-- Tableau de tâches local
-- Vue Focus du jour
-- Vue toutes les tâches
-- Priorités et projets
-- Micro-étapes
-- Timer Focus / pause
-- Statistiques locales
-- Sauvegarde dans le navigateur via `localStorage`
-- PWA installable
-- Service worker pour un usage hors-ligne basique
-
-## Installation locale
-
-Le projet est statique. Tu peux l’ouvrir avec un serveur local simple :
-
-```bash
-python3 -m http.server 5173
-```
-
-Puis ouvrir :
-
-```text
-http://localhost:5173
-```
+- Bottom navigation type app iPhone.
+- Écran Aujourd'hui avec Top 3.
+- Mode Focus complet : tâche active, étape actuelle, timer, progression.
+- Templates rapides : KDP, couverture KDP, Leboncoin, colis, URSSAF, rangement, sport.
+- Design clean sans dépendance externe.
+- Sauvegarde locale via localStorage.
+- PWA installable sur iPhone.
+- Service worker v2 avec cache offline.
+- IA supprimée côté frontend pour éviter l'exposition d'une clé API.
 
 ## Déploiement Netlify
 
-Deux méthodes :
+Build command : laisser vide
+Publish directory : `.`
 
-1. Glisser-déposer le dossier complet dans Netlify.
-2. Envoyer le dossier sur GitHub puis connecter le dépôt à Netlify.
+## Installation iPhone
 
-Le fichier `netlify.toml` publie directement la racine du projet.
-
-## Important IA
-
-La fonction “Décomposer avec l’IA” appelle actuellement l’API Anthropic depuis le navigateur. Pour une vraie mise en production, il faut passer par une fonction serveur Netlify afin de ne jamais exposer de clé API côté client.
+Ouvre l'URL Netlify dans Safari, puis : Partager > Sur l'écran d'accueil.
 
 ## Structure
 
-```text
-index.html
-app.js
-manifest.json
-sw.js
-netlify.toml
-icons/
-```
-
-## Notes
-
-Cette version garde le design d’origine mais retire les emojis visibles pour un rendu plus sobre, plus propre et plus adapté à GitHub.
+- `index.html` : interface + styles
+- `app.js` : logique tâches, focus, timer, templates
+- `manifest.json` : configuration PWA
+- `sw.js` : cache offline
+- `netlify.toml` : configuration Netlify
