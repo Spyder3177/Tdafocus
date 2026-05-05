@@ -4,14 +4,14 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#0f0f13" />
-<meta name="description" content="TDAFocus V2 — gestion de tâches, focus, templates et timer." />
+<meta name="description" content="TDAFocus V3.1 — gestion de tâches TDA, focus, templates et ergonomie mobile." />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="TDAFocus" />
 <link rel="manifest" href="/manifest.json" />
 <link rel="apple-touch-icon" href="/icons/icon-192.png" />
 <link rel="icon" type="image/png" href="/icons/icon-192.png" />
-<title>TDAFocus V2.3</title>
+<title>TDAFocus V3.1</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html{min-height:100%;background:#0f0f13;overscroll-behavior:none}
@@ -25,11 +25,27 @@ button,input,select,textarea{font:inherit}button{cursor:pointer;border:none}inpu
 .hero-actions{flex-wrap:wrap}.hero-actions .btn{flex:1;min-width:145px}.empty-actions{justify-content:center;flex-wrap:wrap}.toast{position:fixed;left:50%;bottom:calc(76px + var(--safe-bottom));transform:translate(-50%,20px);z-index:220;background:rgba(27,27,37,.94);border:1px solid rgba(245,166,35,.32);color:var(--text);padding:12px 16px;border-radius:16px;font-size:13px;font-weight:750;opacity:0;pointer-events:none;transition:.22s;box-shadow:0 18px 44px rgba(0,0,0,.42);max-width:90%;text-align:center}.toast.show{opacity:1;transform:translate(-50%,0)}@media(max-width:430px){.hero-actions .btn{min-width:100%;}.empty-actions .btn{width:100%;}}
 .resume-card{border-color:rgba(245,166,35,.34);box-shadow:0 18px 50px rgba(245,166,35,.08),0 18px 50px rgba(0,0,0,.42)}.reward-pulse .active .card{animation:rewardPop .26s ease}.focus-step{background:linear-gradient(145deg,rgba(245,166,35,.12),rgba(255,255,255,.035));border-color:rgba(245,166,35,.28)}@keyframes rewardPop{0%{transform:scale(.985)}55%{transform:scale(1.012);box-shadow:0 0 0 1px rgba(245,166,35,.16),0 16px 40px rgba(245,166,35,.12)}100%{transform:scale(1)}}@keyframes fade{from{opacity:.65}to{opacity:1}}@keyframes swipeLeft{from{opacity:.75;transform:translateX(18px)}to{opacity:1;transform:translateX(0)}}@keyframes swipeRight{from{opacity:.75;transform:translateX(-18px)}to{opacity:1;transform:translateX(0)}}@keyframes rise{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}@keyframes slideUp{from{opacity:.8;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
 @media(min-width:620px){.modal{border-radius:25px;padding:24px}.overlay{align-items:center;padding:22px}.form-actions{position:static;margin:16px 0 0;padding:0;background:none}.bottom-nav{left:50%;right:auto;transform:translateX(-50%);width:min(520px,94%);border:1px solid var(--line);border-radius:24px;bottom:10px;padding:7px}.nav-inner{max-width:none}.app{padding-bottom:84px}}@media(max-width:430px){.header-inner{padding:12px 14px}.app{padding:14px 12px 0}.grid{grid-template-columns:1fr 1fr}.timer{font-size:50px}.hero-title{font-size:22px}.form-row{grid-template-columns:1fr}}
+
+/* V3.1 — écrans pleine page, plus de fenêtres flottantes */
+.overlay{position:fixed;inset:0;z-index:100;background:#0f0f13;background-image:radial-gradient(circle at top,#1c1c29 0,#0f0f13 42%,#09090d 100%);display:block;align-items:unset;justify-content:unset;padding:0;overflow:hidden}
+.overlay.hidden{display:none!important}
+.modal{width:100vw;max-width:none;height:100dvh;max-height:none;overflow-y:auto;overflow-x:hidden;background:transparent;border:0;border-radius:0;padding:calc(18px + var(--safe-top)) 16px calc(94px + var(--safe-bottom));box-shadow:none;animation:slideFull .22s cubic-bezier(.2,.8,.2,1);-webkit-overflow-scrolling:touch}
+.modal-title{position:sticky;top:calc(-18px - var(--safe-top));z-index:4;margin:calc(-18px - var(--safe-top)) -16px 16px;padding:calc(16px + var(--safe-top)) 16px 14px;background:rgba(15,15,19,.88);backdrop-filter:blur(22px);border-bottom:1px solid var(--line)}
+.modal-title h2{font-size:22px}
+.form-actions{position:fixed;left:0;right:0;bottom:0;margin:0;padding:12px 16px calc(12px + var(--safe-bottom));background:rgba(15,15,19,.9);backdrop-filter:blur(22px);border-top:1px solid var(--line);display:flex;gap:10px;z-index:6}
+.form-actions .btn{flex:1}
+.delete-inline{color:var(--danger);background:rgba(224,92,92,.08);border:1px solid rgba(224,92,92,.22)}
+.task-actions{flex-wrap:wrap;justify-content:flex-end;max-width:128px}
+.task-actions .btn{min-height:32px}
+@keyframes slideFull{from{opacity:.7;transform:translateX(24px)}to{opacity:1;transform:translateX(0)}}
+@media(min-width:620px){.overlay{padding:0}.modal{width:min(760px,100vw);margin:0 auto;padding:calc(18px + var(--safe-top)) 18px calc(94px + var(--safe-bottom))}.form-actions{left:50%;transform:translateX(-50%);width:min(760px,100vw);padding-left:18px;padding-right:18px}.modal-title{margin-left:-18px;margin-right:-18px;padding-left:18px;padding-right:18px}}
+@media(max-width:430px){.task-actions{max-width:110px}.task-actions .btn{font-size:11px;padding:7px 9px}.modal{padding-left:14px;padding-right:14px}.modal-title{margin-left:-14px;margin-right:-14px;padding-left:14px;padding-right:14px}.form-actions{padding-left:14px;padding-right:14px}}
+
 </style>
 </head>
 <body>
 <div id="offline-bar">Mode hors-ligne — données sauvegardées localement.</div>
-<header class="header"><div class="header-inner"><div><div class="brand-line"><div class="brand"><span>TDA</span>Focus</div><div class="version">v3.0</div></div><div class="date" id="date-label"></div></div><div class="header-actions"><button class="btn btn-sm btn-default" onclick="openForm()">Nouvelle tâche</button></div></div></header>
+<header class="header"><div class="header-inner"><div><div class="brand-line"><div class="brand"><span>TDA</span>Focus</div><div class="version">v3.1</div></div><div class="date" id="date-label"></div></div><div class="header-actions"><button class="btn btn-sm btn-default" onclick="openForm()">Nouvelle tâche</button></div></div></header>
 <main class="app">
 <section id="screen-today" class="screen active"></section>
 <section id="screen-tasks" class="screen"></section>
