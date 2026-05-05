@@ -31,19 +31,38 @@ let editId = null;
 let formSteps = [];
 let focusTaskId = localStorage.getItem('tdafocus_v2_focus') || null;
 let timer = { mode:'work', secs:25*60, running:false, interval:null, sessions:Number(localStorage.getItem('tdafocus_v2_sessions') || 0) };
+const SCREEN_ORDER = ['today','tasks','focus','stats'];
+let lastSwipeDirection = null;
 const save = () => localStorage.setItem(STORE, JSON.stringify(tasks));
 const saveSettings = () => localStorage.setItem(SETTINGS, JSON.stringify({screen:currentScreen, filter}));
 const project = id => PROJECTS.find(p=>p.id===id) || PROJECTS[PROJECTS.length-1];
 const taskProgress = t => { const total=t.steps?.length || 0; const done=(t.steps||[]).filter(s=>s.done).length; return {total,done,pct:total?Math.round(done/total*100):0}; };
 function dueText(t){ if(!t.dueDate) return 'Sans échéance'; if(t.dueDate < today() && !t.done) return 'En retard'; if(t.dueDate === today()) return 'Aujourd’hui'; return t.dueDate; }
-function setScreen(s){ currentScreen=s; saveSettings(); render(); }
+function setScreen(s, direction=null){
+  if(!SCREEN_ORDER.includes(s)) return;
+  if(s===currentScreen){ render(); return; }
+  if(!direction){
+    const oldIndex = SCREEN_ORDER.indexOf(currentScreen);
+    const newIndex = SCREEN_ORDER.indexOf(s);
+    direction = newIndex > oldIndex ? 'left' : 'right';
+  }
+  lastSwipeDirection = direction;
+  currentScreen=s;
+  saveSettings();
+  render();
+}
 function setFilter(f){ filter=f; saveSettings(); render(); }
 function getOpen(){ return tasks.filter(t=>!t.done); }
 function todayTasks(){ const po={haute:0,moyenne:1,basse:2}; return getOpen().filter(t=>!t.dueDate || t.dueDate<=today()).sort((a,b)=>(po[a.priority]??1)-(po[b.priority]??1)).slice(0,3); }
 function allTasks(){ const po={haute:0,moyenne:1,basse:2}; return getOpen().filter(t=>filter==='all'||t.project===filter).sort((a,b)=>(po[a.priority]??1)-(po[b.priority]??1)); }
 function render(){
   document.getElementById('date-label').textContent = new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
-  ['today','tasks','focus','stats'].forEach(s=>{ document.getElementById('screen-'+s).className='screen'+(s===currentScreen?' active':''); document.getElementById('nav-'+s).className='nav-btn'+(s===currentScreen?' active':''); });
+  SCREEN_ORDER.forEach(s=>{
+    const screen = document.getElementById('screen-'+s);
+    screen.className='screen'+(s===currentScreen?' active'+(lastSwipeDirection?' swipe-'+lastSwipeDirection:''):'');
+    document.getElementById('nav-'+s).className='nav-btn'+(s===currentScreen?' active':'');
+  });
+  lastSwipeDirection = null;
   renderToday(); renderTasks(); renderFocus(); renderStats();
 }
 function renderToday(){
@@ -97,6 +116,51 @@ function closeModal(){ document.getElementById('overlay').classList.add('hidden'
 const MODES={work:25*60, short:5*60, long:15*60};
 function toggleTimer(){ timer.running=!timer.running; if(timer.running){ timer.interval=setInterval(()=>{ timer.secs--; if(timer.secs<=0){ clearInterval(timer.interval); timer.running=false; timer.sessions++; localStorage.setItem('tdafocus_v2_sessions', timer.sessions); timer.secs = timer.sessions%4===0 ? MODES.long : MODES.short; } renderFocus(); },1000); } else clearInterval(timer.interval); renderFocus(); }
 function resetTimer(){ clearInterval(timer.interval); timer.running=false; timer.secs=MODES.work; renderFocus(); }
+
+function moveScreen(delta){
+  const i = SCREEN_ORDER.indexOf(currentScreen);
+  const ni = Math.max(0, Math.min(SCREEN_ORDER.length - 1, i + delta));
+  if(ni !== i) setScreen(SCREEN_ORDER[ni], delta > 0 ? 'left' : 'right');
+}
+function initSwipeNavigation(){
+  const areas = [document.querySelector('.app'), document.querySelector('.bottom-nav')].filter(Boolean);
+  let startX=0, startY=0, startTime=0, activeArea=null;
+  const onStart = e => {
+    if(e.target.closest('input, textarea, select, button, .modal, .overlay, .pill-row')) return;
+    const t = e.touches ? e.touches[0] : e;
+    startX = t.clientX; startY = t.clientY; startTime = Date.now(); activeArea = e.currentTarget;
+  };
+  const onEnd = e => {
+    if(!activeArea) return;
+    const t = e.changedTouches ? e.changedTouches[0] : e;
+    const dx = t.clientX - startX;
+    const dy = t.clientY - startY;
+    const fast = Date.now() - startTime < 420;
+    if(Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.25 && fast){
+      moveScreen(dx < 0 ? 1 : -1);
+    }
+    activeArea = null;
+  };
+  areas.forEach(area=>{
+    area.addEventListener('touchstart', onStart, {passive:true});
+    area.addEventListener('touchend', onEnd, {passive:true});
+  });
+
+  // Drag direct sur la barre du bas : le doigt qui finit sur une catégorie l'active.
+  const nav = document.querySelector('.bottom-nav');
+  const inner = document.querySelector('.nav-inner');
+  if(nav && inner){
+    nav.addEventListener('touchend', e=>{
+      const t = e.changedTouches?.[0]; if(!t) return;
+      const r = inner.getBoundingClientRect();
+      if(t.clientX < r.left || t.clientX > r.right || t.clientY < r.top || t.clientY > r.bottom) return;
+      const idx = Math.max(0, Math.min(3, Math.floor((t.clientX - r.left) / (r.width / 4))));
+      setScreen(SCREEN_ORDER[idx]);
+    }, {passive:true});
+  }
+}
+initSwipeNavigation();
+
 window.addEventListener('online',()=>document.getElementById('offline-bar').style.display='none');
 window.addEventListener('offline',()=>document.getElementById('offline-bar').style.display='block');
 if(!navigator.onLine) document.getElementById('offline-bar').style.display='block';

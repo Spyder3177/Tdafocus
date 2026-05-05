@@ -1,32 +1,17 @@
-# TDAFocus V2
+# TDAFocus V2.1 Clean GitHub
 
-Application PWA simple en HTML/CSS/JS pour gérer des tâches avec un mode focus, un timer et des templates rapides.
+Application PWA de gestion de tâches et focus.
 
-## Nouveautés V2
+## Nouveautés V2.1
 
-- Bottom navigation type app iPhone.
-- Écran Aujourd'hui avec Top 3.
-- Mode Focus complet : tâche active, étape actuelle, timer, progression.
-- Templates rapides : KDP, couverture KDP, Leboncoin, colis, URSSAF, rangement, sport.
-- Design clean sans dépendance externe.
-- Sauvegarde locale via localStorage.
-- PWA installable sur iPhone.
-- Service worker v2 avec cache offline.
-- IA supprimée côté frontend pour éviter l'exposition d'une clé API.
+- Correction du fond blanc lors du tirage / overscroll iPhone.
+- Swipe horizontal entre les écrans Aujourd’hui, Tâches, Focus et Stats.
+- Swipe/drag sur la barre du bas pour changer d’onglet.
+- Transitions d’écran plus propres.
+- Base toujours sans build, compatible GitHub + Netlify.
 
 ## Déploiement Netlify
 
-Build command : laisser vide
+Build command : vide
+
 Publish directory : `.`
-
-## Installation iPhone
-
-Ouvre l'URL Netlify dans Safari, puis : Partager > Sur l'écran d'accueil.
-
-## Structure
-
-- `index.html` : interface + styles
-- `app.js` : logique tâches, focus, timer, templates
-- `manifest.json` : configuration PWA
-- `sw.js` : cache offline
-- `netlify.toml` : configuration Netlify
