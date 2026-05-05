@@ -21,3 +21,10 @@ Publish directory : `.`
 - Barre du bas descendue et plus compacte sur iPhone.
 - Swipe global sur toute la surface de l’app.
 - Swipe/drag de la barre du bas plus tolérant.
+
+
+## Nouveautés v2.4
+- Ajout du bouton **Planifier ma journée**.
+- Sélection automatique du Top 3 selon retard, échéance, priorité et progression.
+- Mise en focus automatique de la première tâche choisie.
+- Toast de confirmation discret.

@@ -1,4 +1,4 @@
-const APP_VERSION = 'v2.3';
+const APP_VERSION = 'v2.4';
 const STORE = 'tdafocus_v2_tasks';
 const SETTINGS = 'tdafocus_v2_settings';
 const PROJECTS = [
@@ -56,6 +56,39 @@ function setFilter(f){ filter=f; saveSettings(); render(); }
 function getOpen(){ return tasks.filter(t=>!t.done); }
 function todayTasks(){ const po={haute:0,moyenne:1,basse:2}; return getOpen().filter(t=>!t.dueDate || t.dueDate<=today()).sort((a,b)=>(po[a.priority]??1)-(po[b.priority]??1)).slice(0,3); }
 function allTasks(){ const po={haute:0,moyenne:1,basse:2}; return getOpen().filter(t=>filter==='all'||t.project===filter).sort((a,b)=>(po[a.priority]??1)-(po[b.priority]??1)); }
+
+function planDay(){
+  const po={haute:0,moyenne:1,basse:2};
+  const open=getOpen();
+  if(!open.length){ openTemplates(); return; }
+  const scored=open.map(t=>{
+    let score=0;
+    if(t.dueDate && t.dueDate < today()) score+=100;
+    if(t.dueDate === today()) score+=70;
+    score += t.priority==='haute'?40:t.priority==='moyenne'?20:5;
+    const pr=taskProgress(t);
+    if(pr.total && pr.pct>0 && pr.pct<100) score+=12;
+    if(t.project==='kdp') score+=4;
+    if(t.project==='compta') score+=3;
+    return {...t, _score:score};
+  }).sort((a,b)=>b._score-a._score || (po[a.priority]??1)-(po[b.priority]??1));
+  const selected=scored.slice(0,3).map(t=>t.id);
+  tasks=tasks.map(t=>selected.includes(t.id)?{...t,dueDate:today(),expanded:t.id===selected[0]?true:t.expanded}:t);
+  const first=selected[0];
+  save();
+  focusTaskId=first;
+  localStorage.setItem('tdafocus_v2_focus', first);
+  showToast('Journée planifiée : Top 3 mis à jour.');
+  setScreen('today');
+}
+function showToast(message){
+  let el=document.getElementById('toast');
+  if(!el){ el=document.createElement('div'); el.id='toast'; document.body.appendChild(el); }
+  el.textContent=message;
+  el.className='toast show';
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer=setTimeout(()=>el.className='toast',2200);
+}
 function render(){
   document.getElementById('date-label').textContent = new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
   SCREEN_ORDER.forEach(s=>{
@@ -70,10 +103,10 @@ function render(){
 function renderToday(){
   const list=todayTasks(); const main=list[0]; const second=list.slice(1);
   document.getElementById('screen-today').innerHTML = `
-    <div class="hero"><div class="hero-kicker">Focus du jour</div><div class="hero-title">${main ? esc(main.title) : 'Planifie une tâche importante'}</div><div class="hero-sub">${main ? 'Objectif : une seule vraie priorité, puis deux secondaires maximum.' : 'Ajoute une tâche ou utilise un template pour lancer ta journée.'}</div><div style="margin-top:16px" class="row"><button class="btn btn-md btn-accent" onclick="${main?`startFocus('${main.id}')`:'openTemplates()'}">${main?'Démarrer focus':'Utiliser un template'}</button><button class="btn btn-md btn-default" onclick="openForm()">Nouvelle tâche</button></div></div>
+    <div class="hero"><div class="hero-kicker">Focus du jour</div><div class="hero-title">${main ? esc(main.title) : 'Planifie une tâche importante'}</div><div class="hero-sub">${main ? 'Objectif : une seule vraie priorité, puis deux secondaires maximum.' : 'Ajoute une tâche ou utilise un template pour lancer ta journée.'}</div><div style="margin-top:16px" class="row hero-actions"><button class="btn btn-md btn-accent" onclick="${main?`startFocus('${main.id}')`:'openTemplates()'}">${main?'Démarrer focus':'Utiliser un template'}</button><button class="btn btn-md btn-default" onclick="openForm()">Nouvelle tâche</button><button class="btn btn-md btn-default" onclick="planDay()">Planifier ma journée</button></div></div>
     <div class="grid"><div class="big-stat"><div class="stat-val">${tasks.filter(t=>t.done&&t.doneAt===today()).length}</div><div class="stat-label">terminées aujourd’hui</div></div><div class="big-stat"><div class="stat-val">${getOpen().length}</div><div class="stat-label">en cours</div></div></div>
     <div class="section-title">Top 3</div>
-    <div class="stack">${list.length?list.map((t,i)=>renderTaskCard(t,{main:i===0})).join(''):`<div class="empty">Rien à faire pour aujourd’hui.<br><br><button class="btn btn-md btn-accent" onclick="openTemplates()">Créer depuis un template</button></div>`}</div>
+    <div class="stack">${list.length?list.map((t,i)=>renderTaskCard(t,{main:i===0})).join(''):`<div class="empty">Rien à faire pour aujourd’hui.<br><br><div class="row empty-actions"><button class="btn btn-md btn-accent" onclick="openTemplates()">Créer depuis un template</button><button class="btn btn-md btn-default" onclick="planDay()">Planifier</button></div></div>`}</div>
     ${second.length?'<div class="hero-sub" style="margin:14px 2px 0">Astuce : termine la tâche principale avant d’ouvrir les secondaires.</div>':''}
   `;
 }

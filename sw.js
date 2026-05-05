@@ -1,4 +1,4 @@
-const CACHE = 'tdafocus-v2.3.0';
+const CACHE = 'tdafocus-v2.4.0';
 const ASSETS = ['/', '/index.html', '/app.js', '/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
